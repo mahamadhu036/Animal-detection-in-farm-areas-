@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description"
+    content="Real-time farm animal detection dashboard using YOLOv8 AI. Monitor livestock and wildlife intrusions with live alerts." />
+  <title>Farm Animal Monitor — AI Detection Dashboard</title>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --green-dark: #1a3a1a;
+      --green-mid: #2d6a2d;
+      --green-light: #4caf50;
+      --green-pale: #e8f5e9;
+      --amber: #f59e0b;
+      --amber-pale: #fffbeb;
+      --red: #ef4444;
+      --red-pale: #fef2f2;
+      --text-main: #1a1a1a;
+      --text-muted: #6b7280;
+      --text-light: #9ca3af;
+      --bg: #f4f6f3;
+      --card: #ffffff;
+      --border: #e5e7eb;
+      --radius: 12px;
+      --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text-main);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--green-dark);
+      padding: 0 2rem;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .logo-icon {
+      width: 34px;
+      height: 34px;
+      background: var(--green-light);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 5px 12px;
+      font-size: 12px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      background: var(--green-light);
+      border-radius: 50%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+
+      50% {
+        opacity: 0.5;
+        transform: scale(0.85);
+      }
+    }
+
+    #live-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* ── Main Layout ── */
+    main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem;
+    }
+
+    /* ── Stats Row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 14px;
+      margin-bottom: 2rem;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.25rem;
+      box-shadow: var(--shadow);
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text-main);
+      letter-spacing: -0.03em;
+    }
+
+    .stat-sub {
+      font-size: 12px;
+      color: var(--text-light);
+      margin-top: 2px;
+    }
+
+    .stat-card.highlight {
+      border-left: 3px solid var(--green-light);
+    }
+
+    .stat-card.warning {
+      border-left: 3px solid var(--amber);
+    }
+
+    .stat-card.danger {
+      border-left: 3px solid var(--red);
+    }
+
+    /* ── Section Header ── */
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .section-meta {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* ── Detection Grid ── */
+    .detection-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 14px;
+    }
+
+    .detection-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: transform 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .detection-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .card-img {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background: #e5e7eb;
+      display: block;
+    }
+
+    .card-img-placeholder {
+      width: 100%;
+      height: 160px;
+      background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 40px;
+    }
+
+    .card-body {
+      padding: 0.85rem 1rem;
+    }
+
+    .card-animal {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-main);
+      text-transform: capitalize;
+      margin-bottom: 4px;
+    }
+
+    .card-time {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .animal-tag {
+      display: inline-block;
+      margin-top: 8px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .tag-wild {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .tag-livestock {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .tag-stray {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .tag-bird {
+      background: #ede9fe;
+      color: #4c1d95;
+    }
+
+    .tag-default {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    /* ── Empty State ── */
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      grid-column: 1 / -1;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      margin-bottom: 1rem;
+    }
+
+    .empty-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .empty-sub {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+
+    /* ── Alert Log ── */
+    .log-section {
+      margin-top: 2rem;
+    }
+
+    .log-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+    }
+
+    .log-table thead {
+      background: #f9fafb;
+    }
+
+    .log-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log-table td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-main);
+    }
+
+    .log-table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .log-table tr:hover td {
+      background: #f9fafb;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+
+    .dot-ok {
+      background: var(--green-light);
+    }
+
+    .dot-warn {
+      background: var(--amber);
+    }
+
+    .dot-danger {
+      background: var(--red);
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 12px;
+      color: var(--text-light);
+      font-family: 'JetBrains Mono', monospace;
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🌾</div>
+      Farm Animal Monitor
+    </div>
+    <div style="display:flex; align-items:center; gap:12px;">
+      <span id="live-time"></span>
+      <div class="live-badge">
+        <div class="live-dot"></div>
+        LIVE
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card highlight">
+        <div class="stat-label">Total Detections</div>
+        <div class="stat-value" id="total-count">{{ detections|length }}</div>
+        <div class="stat-sub">All time</div>
+      </div>
+      <div class="stat-card warning">
+        <div class="stat-label">Last Detected</div>
+        <div class="stat-value" style="font-size:16px; padding-top:6px;" id="last-detect">
+          {% if detections %}
+          {{ detections[0].animal | capitalize }}
+          {% else %}
+          None
+          {% endif %}
+        </div>
+        <div class="stat-sub">Most recent</div>
+      </div>
+      <div class="stat-card danger">
+        <div class="stat-label">Alert Status</div>
+        <div class="stat-value" style="font-size:16px; color:#ef4444; padding-top:6px;">
+          {% if detections %} ACTIVE {% else %} IDLE {% endif %}
+        </div>
+        <div class="stat-sub">System status</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Monitoring</div>
+        <div class="stat-value" style="font-size:16px; padding-top:6px;">24 / 7</div>
+        <div class="stat-sub">Camera active</div>
+      </div>
+    </div>
+
+    <!-- Detection Images -->
+    <div class="section-header">
+      <div class="section-title">Recent Detections</div>
+      <div class="section-meta">Last 20 snapshots</div>
+    </div>
+
+    <div class="detection-grid" id="detection-grid">
+      {% if detections %}
+      {% for d in detections %}
+      <div class="detection-card">
+        <img class="card-img" src="/logs/{{ d.filename }}" alt="{{ d.animal }}"
+          onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+        <div class="card-img-placeholder" style="display:none;">
+          {% if d.animal in ['cow','goat','horse','sheep'] %}🐄
+          {% elif d.animal == 'dog' %}🐕
+          {% elif d.animal == 'cat' %}🐈
+          {% elif d.animal == 'bird' %}🐦
+          {%elif d.animal == 'pig'%}
+          {% elif d.animal in ['bear','elephant','zebra','giraffe'] %}🐗
+          {% else %}🐾{% endif %}
+        </div>
+        <div class="card-body">
+          <div class="card-animal">{{ d.animal }}</div>
+          <div class="card-time">{{ d.date }} &nbsp;{{ d.time }}</div>
+          {% if d.animal in ['bear','boar','deer','elephant','zebra','giraffe'] %}
+          <span class="animal-tag tag-wild">Wild Animal</span>
+          {% elif d.animal in ['cow','goat','horse','sheep'] %}
+          <span class="animal-tag tag-livestock">Livestock</span>
+          {% elif d.animal == 'dog' %}
+          <span class="animal-tag tag-stray">Stray Dog</span>
+          {% elif d.animal == 'cat' %}
+          <span class="animal-tag tag-stray">Stray Cat</span>
+          {% elif d.animal == 'bird' %}
+          <span class="animal-tag tag-bird">Bird / Pest</span>
+          {% else %}
+          <span class="animal-tag tag-default">Detected</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+
+      {% else %}
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">📷</div>
+        <div class="empty-title">No detections yet</div>
+        <div class="empty-sub">Run <code>main.py</code> and point the camera at an animal to start detecting.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Alert Log Table -->
+    <div class="log-section">
+      <div class="section-header" style="margin-top:2rem;">
+        <div class="section-title">Detection Log</div>
+        <div class="section-meta">All records</div>
+      </div>
+
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Animal</th>
+            <th>Date</th>
+            <th>Time</th>
+            <th>Type</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% if detections %}
+          {% for d in detections %}
+          <tr>
+            <td style="color:var(--text-muted); font-family:'JetBrains Mono',monospace;">{{ loop.index }}</td>
+            <td style="font-weight:500; text-transform:capitalize;">{{ d.animal }}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">{{ d.date }}</td>
+            <td style="font-family:'JetBrains Mono',monospace;">{{ d.time }}</td>
+            <td>
+              {% if d.animal in ['bear','boar','deer','elephant','zebra','giraffe'] %}
+              <span class="animal-tag tag-wild" style="margin:0;">Wild</span>
+              {% elif d.animal in ['cow','goat','horse','sheep'] %}
+              <span class="animal-tag tag-livestock" style="margin:0;">Livestock</span>
+              {% elif d.animal in ['dog','cat'] %}
+              <span class="animal-tag tag-stray" style="margin:0;">Stray</span>
+              {% elif d.animal == 'bird' %}
+              <span class="animal-tag tag-bird" style="margin:0;">Bird</span>
+              {% else %}
+              <span class="animal-tag tag-default" style="margin:0;">Other</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="status-dot dot-ok"></span>Alert Sent
+            </td>
+          </tr>
+          {% endfor %}
+          {% else %}
+          <tr>
+            <td colspan="6" style="text-align:center; padding:2rem; color:var(--text-muted);">
+              No logs yet. Start <code>main.py</code> to begin detecting.
+            </td>
+          </tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <footer>
+    Farm Animal Detection System &nbsp;·&nbsp; Built with YOLOv8 + Flask
+  </footer>
+
+  <script>
+    // ── Live Clock ────────────────────────────────────────────────────────────
+    function updateTime() {
+      const now = new Date();
+      document.getElementById('live-time').textContent =
+        now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    }
+    updateTime();
+    setInterval(updateTime, 1000);
+
+    // ── Animal Helpers ────────────────────────────────────────────────────────
+    const EMOJI_MAP = {
+      cow: '🐄', goat: '🐄', horse: '🐄', sheep: '🐄',
+      dog: '🐕', cat: '🐈', bird: '🐦',
+      bear: '🐗', elephant: '🐗', zebra: '🐗', giraffe: '🐗'
+    };
+    const TAG_MAP = {
+      bear: 'tag-wild', boar: 'tag-wild', deer: 'tag-wild',
+      elephant: 'tag-wild', zebra: 'tag-wild', giraffe: 'tag-wild',
+      cow: 'tag-livestock', goat: 'tag-livestock', horse: 'tag-livestock', sheep: 'tag-livestock',
+      dog: 'tag-stray', cat: 'tag-stray',
+      bird: 'tag-bird'
+    };
+    const LABEL_MAP = {
+      'tag-wild': 'Wild Animal', 'tag-livestock': 'Livestock',
+      'tag-stray': 'Stray', 'tag-bird': 'Bird / Pest', 'tag-default': 'Detected'
+    };
+
+    function buildCard(d) {
+      const tagClass = TAG_MAP[d.animal] || 'tag-default';
+      const label = LABEL_MAP[tagClass];
+      const emoji = EMOJI_MAP[d.animal] || '🐾';
+      return `
+      <div class="detection-card">
+        <img class="card-img" src="/logs/${d.filename}" alt="${d.animal}"
+          onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"/>
+        <div class="card-img-placeholder" style="display:none;">${emoji}</div>
+        <div class="card-body">
+          <div class="card-animal">${d.animal}</div>
+          <div class="card-time">${d.date}&nbsp;&nbsp;${d.time}</div>
+          <span class="animal-tag ${tagClass}">${label}</span>
+        </div>
+      </div>`;
+    }
+
+    // ── Live Poll every 15 s ──────────────────────────────────────────────────
+    let knownFiles = new Set(
+      [...document.querySelectorAll('.detection-card img')].map(i => i.src.split('/logs/')[1])
+    );
+
+    setInterval(async () => {
+      try {
+        const data = await fetch('/api/detections').then(r => r.json());
+        const newItems = data.filter(d => !knownFiles.has(d.filename));
+        if (!newItems.length) return;
+
+        const grid = document.getElementById('detection-grid');
+        const empty = document.getElementById('empty-state');
+        if (empty) empty.remove();
+
+        newItems.forEach(d => {
+          knownFiles.add(d.filename);
+          grid.insertAdjacentHTML('afterbegin', buildCard(d));
+        });
+
+        // Update total count
+        const countEl = document.getElementById('total-count');
+        if (countEl) countEl.textContent = data.length;
+        const lastEl = document.getElementById('last-detect');
+        if (lastEl && data[0]) lastEl.textContent = data[0].animal.charAt(0).toUpperCase() + data[0].animal.slice(1);
+      } catch (e) { /* silent */ }
+    }, 15000);
+  </script>
+
+</body>
+
+</html>
