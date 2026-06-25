@@ -30,8 +30,8 @@ env/
 Thumbs.db
 desktop.ini
 
-# Logs (optional — comment out if you want to include sample logs)
-# logs/
+# Logs (snapshot images saved by main.py — excluded from repo)
+logs/
 
 # Sensitive config — WARNING: config.py contains tokens
 # Uncomment to exclude from repo:
